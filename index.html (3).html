@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Educated Class - Professional Attendance Suite</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        input, select { min-height: 40px; }
+        .custom-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            align-items: center; justify-content: center; padding: 16px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans min-h-screen text-slate-900">
+
+    <header class="bg-blue-950 text-white py-5 px-4 shadow-md text-center">
+        <h1 class="text-2xl md:text-3xl font-black tracking-wide">SUPER EDUCATED CLASS</h1>
+        <p class="text-xs opacity-90 mt-1">🔴 LIVE ATTENDANCE DESK | Shekhpur Daud, Azamgarh</p>
+        
+        <div class="mt-4 flex flex-wrap justify-center gap-2">
+            <button onclick="openModal('studentMarkModal')" class="bg-amber-400 hover:bg-amber-500 text-blue-950 font-black py-2 px-4 rounded-lg shadow text-xs cursor-pointer transition-all">
+                📝 Mark My Attendance (हाजिरी लगाएं)
+            </button>
+            <button onclick="openModal('studentViewModal')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow text-xs cursor-pointer transition-all">
+                🔍 Check Attendance Percentage (स्टूडेंट portal)
+            </button>
+            <button id="auth-action-btn" onclick="toggleTeacherModal()" class="bg-white/10 hover:bg-white/20 text-white font-bold py-2 px-4 rounded-lg text-xs cursor-pointer border border-white/20">
+                🔐 Teacher Access
+            </button>
+        </div>
+    </header>
+
+    <div id="teacher-panel-container" class="hidden">
+        <div class="bg-emerald-600 text-white p-2.5 text-center text-xs font-bold flex justify-center items-center gap-3">
+            <span>🔓 SEC Coaching Attendance Management Session Active</span>
+            <button onclick="logoutTeacher()" class="bg-red-700 hover:bg-red-800 text-white text-[11px] px-2.5 py-1 rounded font-medium cursor-pointer">Logout</button>
+        </div>
+
+        <main class="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <div class="space-y-5 lg:col-span-1">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-sm font-black text-blue-900 mb-3 border-b pb-1.5 uppercase">👤 1. Add Student to Roster</h2>
+                    <div class="space-y-2.5">
+                        <input type="text" id="t-name" placeholder="Student's Full Name" class="w-full p-2 border rounded text-xs bg-slate-50">
+                        <input type="text" id="t-roll" placeholder="Roll Number / Reference ID" class="w-full p-2 border rounded text-xs bg-slate-50">
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="t-class" class="p-2 border rounded bg-slate-50 text-xs class-dropdown"></select>
+                            <select id="t-term" class="p-2 border rounded bg-slate-50 text-xs term-dropdown"></select>
+                        </div>
+                        <select id="t-year" class="w-full p-2 border rounded bg-slate-50 text-xs">
+                            <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                        </select>
+                        <button onclick="addStudentToRoster()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-xs cursor-pointer">Register Student</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-sm font-black text-amber-900 mb-3 border-b pb-1.5 uppercase">🏖️ 2. Declare Coaching Holiday</h2>
+                    <div class="space-y-2.5">
+                        <input type="date" id="h-date" class="w-full p-2 border rounded text-xs bg-slate-50">
+                        <input type="text" id="h-reason" placeholder="Reason (e.g., Sunday, Festival)" class="w-full p-2 border rounded text-xs bg-slate-50">
+                        <button onclick="saveHoliday()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2 rounded text-xs cursor-pointer">Mark Coaching Holiday</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-purple-300 bg-gradient-to-br from-purple-50 to-white">
+                    <h2 class="text-sm font-black text-purple-950 mb-2 uppercase">🛠️ 3. Bulk Monthly Manual Portal</h2>
+                    <p class="text-[11px] text-purple-700 mb-4 leading-relaxed">Pichle mahine ka attendance ek sath P, A, ya Holiday select karke pure screen par manage karne ke liye niche click karein.</p>
+                    <button onclick="openModal('bulkTeacherModal'); loadStudentsForManualAttendance();" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-black py-2.5 rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow">
+                        💻 Open Full Screen Bulk Sheet
+                    </button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-5">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h2 class="text-sm font-black text-blue-900 mb-3 border-b pb-1.5 uppercase">📊 4. Live Attendance Analyzer (Class Summary)</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 bg-slate-50 p-2.5 rounded-lg border mb-4">
+                        <select id="v-year" class="p-1.5 border rounded text-xs bg-white"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select>
+                        <select id="v-class" class="p-1.5 border rounded text-xs bg-white class-dropdown"></select>
+                        <select id="v-term" class="p-1.5 border rounded text-xs bg-white term-dropdown"></select>
+                        <select id="v-month" class="p-1.5 border rounded text-xs bg-white font-bold text-amber-950">
+                            <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+                            <option value="04">April</option><option value="05" selected>May</option><option value="06">June</option>
+                            <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+                            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                        </select>
+                        <button onclick="fetchAttendanceReports()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 rounded text-xs cursor-pointer shadow">Analyze Class</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-800 text-white font-bold text-[11px]">
+                                    <th class="p-2.5 border border-slate-700">Student Name</th>
+                                    <th class="p-2.5 border border-slate-700 text-center">Class</th>
+                                    <th class="p-2.5 border border-slate-700 text-center">Roll No.</th>
+                                    <th class="p-2.5 border border-slate-700 text-center bg-blue-900 text-white">Working</th>
+                                    <th class="p-2.5 border border-slate-700 text-center bg-green-700 text-white">Present (P)</th>
+                                    <th class="p-2.5 border border-slate-700 text-center bg-red-700 text-white">Absent (A)</th>
+                                    <th class="p-2.5 border border-slate-700 text-center bg-amber-600 text-white">Percentage</th>
+                                    <th class="p-2.5 border border-slate-700 text-center">Detailed Logs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teacher-report-table-body">
+                                <tr><td colspan="8" class="p-4 text-center text-gray-400 italic">Select filters and click Analyze Class...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="teacher-lock-notice" class="max-w-xs mx-auto my-12 bg-white p-6 rounded-xl shadow-md border text-center space-y-2">
+        <span class="text-3xl">🔒</span>
+        <h3 class="text-sm font-bold text-slate-700">Management Panel Locked</h3>
+        <p class="text-[11px] text-gray-400">Credentials required. Access dashboard from <b>Teacher Access</b> link above.</p>
+    </div>
+
+
+    <div id="studentMarkModal" class="custom-modal">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl relative border">
+            <button onclick="closeModal('studentMarkModal')" class="absolute top-3 right-3 text-gray-400 text-xl font-bold hover:text-black">&times;</button>
+            <h3 class="text-base font-black text-blue-950 text-center">📝 Student Daily Attendance Desk</h3>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 my-3 text-center">
+                <span class="text-[10px] uppercase font-bold text-blue-800 block tracking-wide">Today's Active Reference</span>
+                <span id="live-date-display" class="text-sm font-black text-blue-950">Loading Current Date...</span>
+            </div>
+            
+            <div class="space-y-3 text-xs">
+                <div class="grid grid-cols-3 gap-1.5">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Year</label>
+                        <select id="sm-year" onchange="loadActiveStudentNamesForMarking()" class="w-full p-2 border rounded bg-slate-50 font-bold">
+                            <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Class</label>
+                        <select id="sm-class" onchange="loadActiveStudentNamesForMarking()" class="w-full p-2 border rounded bg-slate-50 class-dropdown font-bold"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Term</label>
+                        <select id="sm-term" onchange="loadActiveStudentNamesForMarking()" class="w-full p-2 border rounded bg-slate-50 term-dropdown font-bold"></select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-purple-900 uppercase mb-0.5">Select Your Name (अपना नाम चुनें)</label>
+                    <select id="sm-student-select" class="w-full p-2.5 border-2 border-purple-300 rounded-lg bg-purple-50 text-xs font-black text-purple-950">
+                        <option value="">-- Choose Class Filters First --</option>
+                    </select>
+                </div>
+
+                <button onclick="verifyAndMarkAttendance()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-lg uppercase tracking-wider cursor-pointer shadow-md mt-2">
+                    Submit Live Attendance (हाजिरी दर्ज करें)
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="bulkTeacherModal" class="custom-modal">
+        <div class="bg-white rounded-2xl w-full max-w-5xl h-[90vh] p-5 shadow-2xl flex flex-col relative border">
+            <button onclick="closeModal('bulkTeacherModal')" class="absolute top-4 right-4 text-gray-500 hover:text-black font-bold text-2xl">&times;</button>
+            
+            <div class="border-b pb-2 mb-3">
+                <h3 class="text-base font-black text-purple-950 uppercase">💻 Full-Screen Bulk Monthly Attendance Matrix</h3>
+                <p class="text-[11px] text-gray-500">Pichle kisi bhi mahine ka data ek sath (Present / Absent / Holiday) manage karein.</p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-100 p-3 rounded-xl border border-slate-200 mb-3">
+                <select id="m-year" onchange="loadStudentsForManualAttendance()" class="p-1.5 border bg-white rounded text-xs font-bold"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select>
+                <select id="m-class" onchange="loadStudentsForManualAttendance()" class="p-1.5 border bg-white rounded text-xs class-dropdown font-bold"></select>
+                <select id="m-term" onchange="loadStudentsForManualAttendance()" class="p-1.5 border bg-white rounded text-xs term-dropdown font-bold"></select>
+                <select id="m-student-select" onchange="generateMonthlyBulkSheetUI()" class="p-1.5 border border-purple-300 bg-white rounded text-xs font-black text-purple-900"><option value="">-- Select Student --</option></select>
+                <select id="m-month" onchange="generateMonthlyBulkSheetUI()" class="p-1.5 border bg-white rounded text-xs font-black text-amber-900">
+                    <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+                    <option value="04">April</option><option value="05" selected>May</option><option value="06">June</option>
+                    <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+                    <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                </select>
+            </div>
+
+            <div id="bulk-stats-header" class="grid grid-cols-4 gap-2 bg-purple-50 p-3 rounded-xl text-center font-bold text-xs border border-purple-200 mb-3 hidden">
+                <div class="bg-white p-2 rounded border shadow-2xs"><span class="block text-[9px] text-gray-400 font-bold">TOTAL WORKING</span><span id="blk-work" class="text-blue-900 text-sm font-black">0</span></div>
+                <div class="bg-white p-2 rounded border shadow-2xs"><span class="block text-[9px] text-gray-400 font-bold">TOTAL PRESENT</span><span id="blk-pres" class="text-green-700 text-sm font-black">0</span></div>
+                <div class="bg-white p-2 rounded border shadow-2xs"><span class="block text-[9px] text-gray-400 font-bold">TOTAL ABSENT</span><span id="blk-abs" class="text-red-600 text-sm font-black">0</span></div>
+                <div class="bg-white p-2 rounded border shadow-2xs"><span class="block text-[9px] text-gray-400 font-bold">PERCENTAGE</span><span id="blk-pct" class="text-purple-900 text-sm font-black">0%</span></div>
+            </div>
+            <div id="bulk-exam-alert" class="bg-red-100 text-red-700 p-2 text-center text-xs font-black rounded-xl mb-3 hidden">⚠️ Required 75% present for exam hall</div>
+
+            <div id="bulk-scroll-area" class="flex-1 overflow-y-auto border border-slate-200 rounded-xl bg-slate-50 p-3 hidden">
+                <div id="bulk-rows-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+            </div>
+
+            <div class="mt-3">
+                <button id="bulk-save-btn" onclick="saveBulkMonthlyAttendanceFromUI()" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-black py-3 rounded-xl text-xs uppercase tracking-wide hidden cursor-pointer shadow-lg">
+                    💾 Save Entire Month Attendance Sheet (पूरे महीने का रिकॉर्ड सुरक्षित करें)
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="studentViewModal" class="custom-modal">
+        <div class="bg-white rounded-2xl max-w-xl w-full p-5 shadow-2xl relative border flex flex-col max-h-[90vh]">
+            <button onclick="closeModal('studentViewModal')" class="absolute top-3 right-3 text-gray-400 text-xl font-bold hover:text-black">&times;</button>
+            <h3 class="text-base font-black text-blue-950 mb-3 border-b pb-1 text-center">🔍 Check Attendance Percentage</h3>
+            
+            <div class="space-y-2 text-xs bg-slate-50 p-2.5 rounded-xl border">
+                <div class="grid grid-cols-4 gap-1.5">
+                    <select id="sv-year" onchange="loadStudentsForViewDropdown()" class="p-2 border bg-white rounded font-bold"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select>
+                    <select id="sv-class" onchange="loadStudentsForViewDropdown()" class="p-2 border bg-white rounded class-dropdown font-bold"></select>
+                    <select id="sv-term" onchange="loadStudentsForViewDropdown()" class="p-2 border bg-white rounded term-dropdown font-bold"></select>
+                    <select id="sv-month" class="p-2 border bg-white rounded font-bold text-amber-900">
+                        <option value="01">January</option><option value="02">February</option><option value="03">March</option>
+                        <option value="04">April</option><option value="05" selected>May</option><option value="06">June</option>
+                        <option value="07">July</option><option value="08">August</option><option value="09">September</option>
+                        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                    </select>
+                </div>
+                <select id="sv-student-select" class="w-full p-2 border bg-white rounded font-bold text-blue-900">
+                    <option value="">-- Select Your Name --</option>
+                </select>
+                <button onclick="studentSelfLookup()" class="w-full bg-indigo-600 text-white font-bold py-2 rounded cursor-pointer">Check Percentage Summary</button>
+            </div>
+
+            <div id="student-portal-output-area" class="mt-4 space-y-3 hidden flex-1 flex flex-col overflow-hidden">
+                <div class="grid grid-cols-4 gap-1.5 text-center text-xs">
+                    <div class="bg-blue-50 p-2 rounded border"><p class="text-[9px] text-slate-500 font-bold uppercase">Total Working</p><h4 id="s-work" class="font-black text-blue-900 text-sm">0</h4></div>
+                    <div class="bg-green-50 p-2 rounded border"><p class="text-[9px] text-slate-500 font-bold uppercase">T. Present</p><h4 id="s-pres" class="font-black text-green-700 text-sm">0</h4></div>
+                    <div class="bg-red-50 p-2 rounded border"><p class="text-[9px] text-slate-500 font-bold uppercase">T. Absent</p><h4 id="s-abs" class="font-black text-red-700 text-sm">0</h4></div>
+                    <div class="bg-amber-50 p-2 rounded border"><p class="text-[9px] text-slate-500 font-bold uppercase">Percentage</p><h4 id="s-pct" class="font-black text-amber-800 text-sm">0%</h4></div>
+                </div>
+                
+                <div id="student-exam-alert" class="bg-red-100 text-red-700 p-2 text-center text-[11px] font-black rounded-lg hidden">⚠️ Required 75% present for exam hall</div>
+
+                <div class="text-center">
+                    <button onclick="openModal('studentFullHistoryModal')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded-xl text-xs cursor-pointer shadow">
+                        👁️ View Full Detail Matrix (पूरा ब्यौरा पॉप-अप में देखें)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="studentFullHistoryModal" class="custom-modal">
+        <div class="bg-white rounded-2xl w-full max-w-2xl h-[80vh] p-5 shadow-2xl flex flex-col relative border">
+            <button onclick="closeModal('studentFullHistoryModal')" class="absolute top-4 right-4 text-gray-500 hover:text-black font-bold text-2xl">&times;</button>
+            
+            <div class="border-b pb-2 mb-3">
+                <h3 id="history-modal-title" class="text-base font-black text-blue-950 uppercase">📅 Detailed Daily Logs Statement</h3>
+                <p class="text-[11px] text-gray-500">Kis din attendance Mark hua hai, kis din Absent hua hai ya Holiday tha, sab niche darj hai.</p>
+            </div>
+
+            <div class="flex-1 overflow-y-auto border rounded-xl bg-white">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-800 text-white font-bold sticky top-0 shadow">
+                        <tr>
+                            <th class="p-3">Date Reference</th>
+                            <th class="p-3 text-center">Status Matrix Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="full-history-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="loginModal" class="custom-modal">
+        <div class="bg-white rounded-xl max-w-xs w-full p-5 shadow-2xl relative">
+            <button onclick="toggleTeacherModal()" class="absolute top-2 right-3 text-gray-400 font-bold text-lg">&times;</button>
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">🔑 Secure Teacher PIN</h3>
+            <input type="password" id="teacher-pin" placeholder="Enter Password" class="w-full p-2 border rounded text-xs bg-slate-50">
+            <button onclick="verifyTeacherLogin()" class="w-full bg-blue-900 text-white font-bold py-2 rounded text-xs mt-2.5 cursor-pointer">Verify Pass</button>
+        </div>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyAw_f7ew1GMy5HhL9Io-i7zfA3mOQSpn2s",
+          authDomain: "super-educated-class.firebaseapp.com",
+          databaseURL: "https://super-educated-class-default-rtdb.firebaseio.com",
+          projectId: "super-educated-class",
+          storageBucket: "super-educated-class.firebasestorage.app",
+          messagingSenderId: "993892326574",
+          appId: "1:993892326574:web:356ca4361c718aff4da13f"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const b64_token = "U3VwZXJAMjAyNg=="; // Password: Super@2026
+        
+        let globalHolidaysMap = {};
+        let currentEditingLog = {};
+        let allLoadedRosterCache = {}; // Global temporary bridge cache for report log lookup clicks
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            populateSystemDropdowns();
+            applyAuthView(false);
+            showLiveDateWidget();
+            
+            setTimeout(() => {
+                openModal('studentMarkModal');
+                loadActiveStudentNamesForMarking();
+            }, 600);
+        });
+
+        function populateSystemDropdowns() {
+            document.querySelectorAll('.class-dropdown').forEach(d => {
+                d.innerHTML = ""; for(let i=1; i<=10; i++) d.innerHTML += `<option value="Class ${i}">Class ${i}</option>`;
+            });
+            document.querySelectorAll('.term-dropdown').forEach(d => {
+                d.innerHTML = ""; ["First Term", "Second Term", "Third Term", "Fourth Term", "Fifth Term", "Sixth Term"].forEach((t, i) => {
+                    d.innerHTML += `<option value="Term ${i+1}">${t}</option>`;
+                });
+            });
+        }
+
+        function showLiveDateWidget() {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            const now = new Date();
+            document.getElementById('live-date-display').innerText = `${days[now.getDay()]} - ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+        }
+
+        function getSECSystemTimeContext() {
+            const now = new Date();
+            const yearStr = now.getFullYear().toString();
+            const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+            const dayStr = String(now.getDate()).padStart(2, '0');
+            return { dateKey: `${yearStr}-${monthStr}-${dayStr}` };
+        }
+
+        window.openModal = function(id) { document.getElementById(id).style.display = 'flex'; }
+        window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; }
+        
+        window.toggleTeacherModal = function() {
+            const m = document.getElementById('loginModal');
+            m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+        }
+        window.verifyTeacherLogin = function() {
+            if(btoa(document.getElementById('teacher-pin').value) === b64_token) {
+                document.getElementById('teacher-pin').value = '';
+                toggleTeacherModal(); applyAuthView(true);
+            } else { 
+                alert("❌ ACCESS DENIED!\nIncorrect Administrative PIN Code entered.\n\nगलत पिन कोड दर्ज किया गया है।"); 
+            }
+        }
+        window.logoutTeacher = function() { applyAuthView(false); }
+        function applyAuthView(isLog) {
+            if(isLog) {
+                document.getElementById('teacher-panel-container').classList.remove('hidden');
+                document.getElementById('teacher-lock-notice').classList.add('hidden');
+                document.getElementById('auth-action-btn').innerText = "🔒 Session Active";
+            } else {
+                document.getElementById('teacher-panel-container').classList.add('hidden');
+                document.getElementById('teacher-lock-notice').classList.remove('hidden');
+                document.getElementById('auth-action-btn').innerText = "🔐 Teacher Access";
+            }
+        }
+
+        // 1. TEACHER: REGISTER STUDENT
+        window.addStudentToRoster = async function() {
+            const name = document.getElementById('t-name').value.trim();
+            const roll = document.getElementById('t-roll').value.trim();
+            const cls = document.getElementById('t-class').value;
+            const trm = document.getElementById('t-term').value;
+            const yr = document.getElementById('t-year').value;
+
+            if(!name || !roll) { alert("Please supply student name and unique roll reference!"); return; }
+            try {
+                const docId = `ATT_${yr}_${cls}_${roll}`.replace(/\s+/g, '');
+                await setDoc(doc(db, "attendance_roster", docId), { name, rollNumber: roll, class: cls, term: trm, year: yr, attendanceLog: {} });
+                alert("SUCCESS!\nStudent has been added to the register system.\n\nविद्यार्थी का नाम सफलतापूर्वक जोड़ दिया गया है।");
+                document.getElementById('t-name').value = ''; document.getElementById('t-roll').value = '';
+                loadActiveStudentNamesForMarking();
+            } catch(e) { alert("Database sync error!"); }
+        }
+
+        // GENERIC DROPDOWN HANDLER
+        async function populateGenericStudentSelect(yrId, clsId, trmId, targetDropId) {
+            const yr = document.getElementById(yrId).value;
+            const cls = document.getElementById(clsId).value;
+            const trm = document.getElementById(trmId).value;
+            const drop = document.getElementById(targetDropId);
+            if(!drop) return;
+            
+            drop.innerHTML = "<option value=''>Loading names...</option>";
+            try {
+                const q = query(collection(db, "attendance_roster"), where("year", "==", yr), where("class", "==", cls), where("term", "==", trm));
+                const snap = await getDocs(q);
+                if(snap.empty) { drop.innerHTML = "<option value=''>❌ No registered students found</option>"; return; }
+                drop.innerHTML = "<option value=''>-- Select Student Name --</option>";
+                snap.forEach(d => { drop.innerHTML += `<option value="${d.id}">${d.data().name} (Roll: ${d.data().rollNumber})</option>`; });
+            } catch(e){ drop.innerHTML = "<option value=''>Error loading data</option>"; }
+        }
+
+        window.loadActiveStudentNamesForMarking = function() { populateGenericStudentSelect('sm-year', 'sm-class', 'sm-term', 'sm-student-select'); }
+        window.loadStudentsForViewDropdown = function() { populateGenericStudentSelect('sv-year', 'sv-class', 'sv-term', 'sv-student-select'); }
+        window.loadStudentsForManualAttendance = function() { populateGenericStudentSelect('m-year', 'm-class', 'm-term', 'm-student-select'); }
+
+        // 2. DECLARE COACHING HOLIDAY BOX WIDGET
+        window.saveHoliday = async function() {
+            const hDate = document.getElementById('h-date').value;
+            const hReason = document.getElementById('h-reason').value.trim() || "Coaching Holiday";
+            if(!hDate) { alert("ATTENTION!\nPlease select a valid calendar date first.\n\nकृपया पहले कैलेंडर से एक तारीख चुनें।"); return; }
+            try {
+                await setDoc(doc(db, "school_holidays", hDate), { isHoliday: true, reason: hReason });
+                alert(`SUCCESS!\nCoaching Holiday successfully declared for date: ${hDate}\n\nकोचिंग छुट्टी का रिकॉर्ड सफलतापूर्वक सेव कर दिया गया है।`);
+                document.getElementById('h-date').value = ''; document.getElementById('h-reason').value = '';
+            } catch(e){ alert("Cloud storage integration error."); }
+        }
+
+        // 3. STUDENT PORTAL DAILY SUBMISSION
+        window.verifyAndMarkAttendance = async function() {
+            const sId = document.getElementById('sm-student-select').value;
+            if(!sId) { alert("ATTENTION!\nPlease select your name from the dropdown list first.\n\nकृपया सूची से अपना नाम चुनें।"); return; }
+            const timeCtx = getSECSystemTimeContext();
+
+            try {
+                const studDocRef = doc(db, "attendance_roster", sId);
+                const snap = await getDoc(studDocRef);
+                if(!snap.exists()) return;
+
+                let attendanceLog = snap.data().attendanceLog || {};
+                
+                if(attendanceLog[timeCtx.dateKey] === "Present") {
+                    alert("DUPLICATE ENTRY DETECTED!\nYour attendance for today has already been captured. Multiple submissions are restricted!\n\nआपका आज का प्रेजेंट पहले ही लग चुका है। दोबारा हाजिरी नहीं लग सकती!");
+                    closeModal('studentMarkModal'); return;
+                }
+
+                attendanceLog[timeCtx.dateKey] = "Present";
+                await updateDoc(studDocRef, { attendanceLog });
+                
+                alert("SUCCESS!\nPresent Marked Successfully! Today's attendance has been locked.\n\nप्रेजेंट सफलतापूर्वक दर्ज हो गया है! आज की हाजिरी लग गयी है।");
+                closeModal('studentMarkModal');
+            } catch(e){ alert("Connection Error."); }
+        }
+
+        // LOGIC COMPILER ENGINE (Evaluates status entries properly across the calendar)
+        function compileAttendanceSummary(attendanceLog, holidaysMap, targetMonthKey) {
+            let totalWorking = 0, presentCount = 0, absentCount = 0;
+            let structuredList = [];
+            
+            const currentYear = parseInt(targetMonthKey.split('-')[0]);
+            const currentMonth = parseInt(targetMonthKey.split('-')[1]) - 1; 
+            const today = new Date();
+            
+            let maxDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+            if(today.getFullYear() === currentYear && today.getMonth() === currentMonth) {
+                maxDays = today.getDate();
+            }
+
+            for (let day = 1; day <= maxDays; day++) {
+                const dayStr = String(day).padStart(2, '0');
+                const loopDateKey = `${targetMonthKey}-${dayStr}`;
+                const globalHolidayInfo = holidaysMap[loopDateKey];
+                const studentStatus = attendanceLog[loopDateKey];
+                
+                if (studentStatus === "Holiday") {
+                    structuredList.push({ date: loopDateKey, status: "Holiday (Manual Entry)", type: 'H', css: 'bg-amber-100 text-amber-800 font-bold' });
+                    presentCount++; totalWorking++;
+                } else if (globalHolidayInfo && globalHolidayInfo.isHoliday) {
+                    structuredList.push({ date: loopDateKey, status: `Holiday (${globalHolidayInfo.reason})`, type: 'H', css: 'bg-amber-100 text-amber-800' });
+                    presentCount++; totalWorking++;
+                } else {
+                    if (studentStatus === "Present") {
+                        totalWorking++; presentCount++;
+                        structuredList.push({ date: loopDateKey, status: "Present", type: 'P', css: 'bg-green-100 text-green-800 font-bold' });
+                    } else if (studentStatus === "Absent") {
+                        totalWorking++; absentCount++;
+                        structuredList.push({ date: loopDateKey, status: "Absent", type: 'A', css: 'bg-red-100 text-red-800 font-black' });
+                    } else {
+                        totalWorking++; absentCount++;
+                        structuredList.push({ date: loopDateKey, status: "Absent", type: 'A', css: 'bg-red-100 text-red-800 font-black' });
+                    }
+                }
+            }
+            let percentage = totalWorking > 0 ? Math.round((presentCount / totalWorking) * 100) : 0;
+            return { totalWorking, presentCount, absentCount, percentage, structuredList };
+        }
+
+        // 4. TEACHER POPUP BULK GENERATOR (P/A/H Matrix UI)
+        window.generateMonthlyBulkSheetUI = async function() {
+            const sId = document.getElementById('m-student-select').value;
+            const yr = document.getElementById('m-year').value;
+            const mon = document.getElementById('m-month').value;
+            
+            const area = document.getElementById('bulk-scroll-area');
+            const rowsCont = document.getElementById('bulk-rows-container');
+            const statsHead = document.getElementById('bulk-stats-header');
+            const saveBtn = document.getElementById('bulk-save-btn');
+            const examAlert = document.getElementById('bulk-exam-alert');
+
+            if(!sId) { area.classList.add('hidden'); statsHead.classList.add('hidden'); saveBtn.classList.add('hidden'); examAlert.classList.add('hidden'); return; }
+
+            const targetMonthKey = `${yr}-${mon}`;
+            rowsCont.innerHTML = "<p class='col-span-full text-center text-xs text-purple-900 font-bold py-8 animate-pulse'>Compiling Month Timeline Framework...</p>";
+            area.classList.remove('hidden'); saveBtn.classList.remove('hidden');
+
+            try {
+                const hSnap = await getDocs(collection(db, "school_holidays"));
+                globalHolidaysMap = {}; hSnap.forEach(d => { globalHolidaysMap[d.id] = d.data(); });
+
+                const snap = await getDoc(doc(db, "attendance_roster", sId));
+                if(!snap.exists()) return;
+
+                currentEditingLog = snap.data().attendanceLog || {};
+                const summary = compileAttendanceSummary(currentEditingLog, globalHolidaysMap, targetMonthKey);
+
+                document.getElementById('blk-work').innerText = summary.totalWorking;
+                document.getElementById('blk-pres').innerText = summary.presentCount;
+                document.getElementById('blk-abs').innerText = summary.absentCount;
+                document.getElementById('blk-pct').innerText = `${summary.percentage}%`;
+                statsHead.classList.remove('hidden');
+
+                if(summary.percentage < 75) { examAlert.classList.remove('hidden'); } else { examAlert.classList.add('hidden'); }
+
+                rowsCont.innerHTML = "";
+                summary.structuredList.forEach((dayObj) => {
+                    const dKey = dayObj.date;
+                    
+                    let pChecked = dayObj.type === 'P' ? 'checked' : '';
+                    let aChecked = dayObj.type === 'A' ? 'checked' : '';
+                    let hChecked = dayObj.type === 'H' ? 'checked' : '';
+                    
+                    if(!pChecked && !aChecked && !hChecked) { aChecked = 'checked'; }
+
+                    rowsCont.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-2">
+                            <span class="font-black text-slate-800 text-[11px] border-b pb-1 bg-slate-50 p-1 rounded">${dKey}</span>
+                            <div class="flex items-center justify-around font-black text-xs pt-1">
+                                <label class="flex items-center gap-1 cursor-pointer text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
+                                    <input type="radio" name="status-${dKey}" value="Present" ${pChecked} onchange="updateLiveBulkSheetStatsCache('${dKey}', 'Present')" class="accent-green-600 w-4 h-4"> P
+                                </label>
+                                <label class="flex items-center gap-1 cursor-pointer text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
+                                    <input type="radio" name="status-${dKey}" value="Absent" ${aChecked} onchange="updateLiveBulkSheetStatsCache('${dKey}', 'Absent')" class="accent-red-600 w-4 h-4"> A
+                                </label>
+                                <label class="flex items-center gap-1 cursor-pointer text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                    <input type="radio" name="status-${dKey}" value="Holiday" ${hChecked} onchange="updateLiveBulkSheetStatsCache('${dKey}', 'Holiday')" class="accent-amber-600 w-4 h-4"> H
+                                </label>
+                            </div>
+                        </div>`;
+                });
+            } catch(e) { rowsCont.innerHTML = "<p class='text-red-500 text-center p-2 col-span-full'>Error loading.</p>"; }
+        }
+
+        window.updateLiveBulkSheetStatsCache = function(dateKey, statusValue) {
+            currentEditingLog[dateKey] = statusValue;
+            const yr = document.getElementById('m-year').value;
+            const mon = document.getElementById('m-month').value;
+            const summary = compileAttendanceSummary(currentEditingLog, globalHolidaysMap, `${yr}-${mon}`);
+            
+            document.getElementById('blk-work').innerText = summary.totalWorking;
+            document.getElementById('blk-pres').innerText = summary.presentCount;
+            document.getElementById('blk-abs').innerText = summary.absentCount;
+            document.getElementById('blk-pct').innerText = `${summary.percentage}%`;
+            
+            if(summary.percentage < 75) { document.getElementById('bulk-exam-alert').classList.remove('hidden'); }
+            else { document.getElementById('bulk-exam-alert').classList.add('hidden'); }
+        }
+
+        window.saveBulkMonthlyAttendanceFromUI = async function() {
+            const sId = document.getElementById('m-student-select').value;
+            if(!sId) return;
+            try {
+                await updateDoc(doc(db, "attendance_roster", sId), { attendanceLog: currentEditingLog });
+                alert("SUCCESS TRANSACTION!\nPura mahina attendance sheet record saved successfully in Cloud Server!\n\nपूरे महीने का अटेंडेंस शीट रिकॉर्ड सर्वर पर सुरक्षित कर दिया गया है!");
+                generateMonthlyBulkSheetUI();
+                closeModal('bulkTeacherModal');
+            } catch(e) { alert("Error saving bulk matrix data."); }
+        }
+
+        // 5. CLASS SUMMARY ANALYZER DASHBOARD (UPDATED WITH COMPREHENSIVE COLUMNS & LOG OVERVIEW CLICK ACTION)
+        window.fetchAttendanceReports = async function() {
+            const yr = document.getElementById('v-year').value;
+            const cls = document.getElementById('v-class').value;
+            const trm = document.getElementById('v-term').value;
+            const mon = document.getElementById('v-month').value; 
+            
+            const tbody = document.getElementById('teacher-report-table-body');
+            tbody.innerHTML = "<tr><td colspan='8' class='p-4 text-center text-blue-900 font-bold animate-pulse'>Compiling Live Report Rosters...</td></tr>";
+            
+            const targetMonthKey = `${yr}-${mon}`;
+            try {
+                const hSnap = await getDocs(collection(db, "school_holidays"));
+                let holidaysMap = {}; hSnap.forEach(d => { holidaysMap[d.id] = d.data(); });
+                globalHolidaysMap = holidaysMap; // Backup sync reference
+
+                const q = query(collection(db, "attendance_roster"), where("year", "==", yr), where("class", "==", cls), where("term", "==", trm));
+                const snap = await getDocs(q);
+                if(snap.empty) { tbody.innerHTML = "<tr><td colspan='8' class='p-4 text-center text-gray-400'>No students found matching current filters.</td></tr>"; return; }
+                
+                tbody.innerHTML = "";
+                allLoadedRosterCache = {}; // Flush old references
+                
+                snap.forEach(docSnap => {
+                    const sId = docSnap.id;
+                    const s = docSnap.data();
+                    allLoadedRosterCache[sId] = s; // Map student profile to cache
+                    
+                    const metrics = compileAttendanceSummary(s.attendanceLog || {}, holidaysMap, targetMonthKey);
+                    
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50 text-xs">
+                            <td class="p-2.5 border font-bold text-slate-800">${s.name}</td>
+                            <td class="p-2.5 border text-center font-medium text-slate-600">${s.class}</td>
+                            <td class="p-2.5 border text-center font-mono font-bold text-purple-950">${s.rollNumber || 'N/A'}</td>
+                            <td class="p-2.5 border text-center font-bold text-blue-950">${metrics.totalWorking} Days</td>
+                            <td class="p-2.5 border text-center font-black text-green-700">${metrics.presentCount}</td>
+                            <td class="p-2.5 border text-center font-black text-red-600">${metrics.absentCount}</td>
+                            <td class="p-2.5 border text-center font-black text-teal-700 bg-slate-50">${metrics.percentage}%</td>
+                            <td class="p-2.5 border text-center">
+                                <button onclick="drillDownStudentMonthLogsFromReport('${sId}', '${targetMonthKey}')" class="bg-blue-900 hover:bg-blue-950 text-white text-[10px] py-1 px-2.5 font-bold rounded shadow cursor-pointer transition-all">
+                                    👁️ View Logs
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+            } catch(e){ tbody.innerHTML = "<tr><td colspan='8' class='p-4 text-center text-red-600'>Execution failure during data lookup.</td></tr>"; }
+        }
+
+        // TRIGGER COMPONENT: Opens detailed pop-up timeline logs for any specific student on row button click
+        window.drillDownStudentMonthLogsFromReport = function(studentId, targetMonthKey) {
+            const student = allLoadedRosterCache[studentId];
+            if(!student) return;
+
+            const metrics = compileAttendanceSummary(student.attendanceLog || {}, globalHolidaysMap, targetMonthKey);
+            
+            document.getElementById('history-modal-title').innerText = `${student.name} (Roll: ${student.rollNumber}) - Logs Summary [${targetMonthKey}]`;
+            
+            const tbody = document.getElementById('full-history-table-body');
+            tbody.innerHTML = "";
+            
+            metrics.structuredList.reverse().forEach(row => {
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-slate-50">
+                        <td class="p-3 font-bold text-slate-700">${row.date}</td>
+                        <td class="p-3 text-center">
+                            <span class="px-3 py-1 rounded-lg text-[10px] font-black tracking-wide shadow-3xs ${row.css}">
+                                ${row.status}
+                            </span>
+                        </td>
+                    </tr>`;
+            });
+
+            openModal('studentFullHistoryModal');
+        }
+
+        // 6. STUDENT PORTAL SELF LOOKUP ENGINE
+        window.studentSelfLookup = async function() {
+            const sId = document.getElementById('sv-student-select').value;
+            const chosenYear = document.getElementById('sv-year').value;
+            const chosenMonth = document.getElementById('sv-month').value;
+            
+            if(!sId) { alert("Please select your name first!"); return; }
+            const container = document.getElementById('student-portal-output-area');
+            const targetMonthKey = `${chosenYear}-${chosenMonth}`;
+
+            try {
+                const hSnap = await getDocs(collection(db, "school_holidays"));
+                let holidaysMap = {}; hSnap.forEach(d => { holidaysMap[d.id] = d.data(); });
+                globalHolidaysMap = holidaysMap;
+
+                const snap = await getDoc(doc(db, "attendance_roster", sId));
+                if(!snap.exists()) return;
+
+                const data = snap.data();
+                const metrics = compileAttendanceSummary(data.attendanceLog || {}, holidaysMap, targetMonthKey);
+                
+                document.getElementById('s-work').innerText = metrics.totalWorking;
+                document.getElementById('s-pres').innerText = metrics.presentCount;
+                document.getElementById('s-abs').innerText = metrics.absentCount;
+                document.getElementById('s-pct').innerText = `${metrics.percentage}%`;
+
+                if(metrics.percentage < 75) {
+                    document.getElementById('student-exam-alert').classList.remove('hidden');
+                } else {
+                    document.getElementById('student-exam-alert').classList.add('hidden');
+                }
+
+                document.getElementById('history-modal-title').innerText = `📅 ${data.name} - Statement (${targetMonthKey})`;
+
+                const tbody = document.getElementById('full-history-table-body');
+                tbody.innerHTML = "";
+                metrics.structuredList.reverse().forEach(row => {
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-slate-50">
+                            <td class="p-3 font-bold text-slate-700">${row.date}</td>
+                            <td class="p-3 text-center"><span class="px-3 py-1 rounded-lg text-[10px] font-black tracking-wide shadow-3xs ${row.css}">${row.status}</span></td>
+                        </tr>`;
+                });
+
+                container.classList.remove('hidden');
+            } catch(e){}
+        }
+    </script>
+</body>
+</html>
